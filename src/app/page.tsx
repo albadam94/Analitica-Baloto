@@ -33,11 +33,12 @@ export default function Dashboard() {
   const [formRevancha, setFormRevancha] = useState<SorteoForm>({ n1: '15', n2: '04', n3: '10', n4: '02', n5: '40', sb: '10' });
   const [formJugadas, setFormJugadas] = useState<SorteoForm>({ n1: '15', n2: '04', n3: '10', n4: '02', n5: '40', sb: '10' });
 
-  // 1. EFECTO: Consultar la API cuando cambia la fecha en el calendario
+  // 1.Consultar la API cuando cambia la fecha en el calendario
   useEffect(() => {
     async function cargarDatosFecha() {
       try {
-        const res = await fetch(`http://127.0.0.1:8000/api/sorteos/${fechaSeleccionada}`);
+        // Apuntando a Render en lugar de Localhost
+        const res = await fetch(`https://analitica-baloto.onrender.com/api/sorteos/${fechaSeleccionada}`);
         if (!res.ok) throw new Error("Error en servidor");
         
         const data = await res.json();
@@ -83,7 +84,8 @@ export default function Dashboard() {
   const handleGenerarPrediccion = async () => {
     setLoadingPredict(true);
     try {
-      const res = await fetch("http://127.0.0.1:8000/api/predict");
+      //Apuntando a Render en lugar de Localhost
+      const res = await fetch("https://analitica-baloto.onrender.com/api/predict");
       if (!res.ok) throw new Error("Error obteniendo predicción");
       const data = await res.json();
       setPrediccion(data);
@@ -106,7 +108,8 @@ export default function Dashboard() {
   // 3. PETICIÓN: Enviar datos nuevos ingresados manualmente al backend
   const guardarSorteoEnBackend = async (): Promise<boolean> => {
     try {
-      const res = await fetch("http://127.0.0.1:8000/api/sorteos/ingresar", {
+      //Apuntando a Render en lugar de Localhost
+      const res = await fetch("https://analitica-baloto.onrender.com/api/sorteos/ingresar", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -214,7 +217,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* BOTTOM CARDS */}
+        {/* Bottom Cards */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pt-4">
           <SorteoInputCard 
             title="Resultado Baloto" tarjetaKey="baloto" form={formBaloto} isEditing={editando.baloto}
