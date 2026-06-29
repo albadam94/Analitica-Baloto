@@ -1,25 +1,17 @@
-from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
 import os
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, declarative_base
 
-# LOCAL: Modifica con tu usuario y contraseña local de Postgres si vas a probar en tu máquina primero.
-# SUPABASE: Cuando estés listo, reemplazarás este string por el "Connection String" de Supabase.
-DATABASE_URL = os.getenv(
-    "DATABASE_URL", 
-    "postgresql://postgres.ygqbkvwcpqayybooyvsm:Baloto2026data@aws-1-us-west-2.pooler.supabase.com:5432/postgres?sslmode=require"
-)
 
-# El engine se encarga de hablar el lenguaje de Postgres
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+if not DATABASE_URL:
+    raise ValueError("ERROR CRÍTICO: La variable de entorno 'DATABASE_URL' no está configurada.")
+
 engine = create_engine(DATABASE_URL)
-
-# Cada sesión es una transacción con la base de datos
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-# Clase base de la que heredarán nuestros modelos de tablas SQL
 Base = declarative_base()
 
-# Dependencia para FastAPI: Abre la base de datos por petición y la cierra al terminar
 def get_db():
     db = SessionLocal()
     try:
