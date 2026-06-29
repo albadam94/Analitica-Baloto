@@ -13,7 +13,9 @@ interface SorteoForm {
 
 export default function Dashboard() {
   const [fechaSeleccionada, setFechaSeleccionada] = useState("2026-06-29");
-  const [dbActiva, setDbActiva] = useState(false);
+  
+  // Cambiamos a string para manejar 3 estados: "conectando", "activa", "inactiva"
+  const [estadoDb, setEstadoDb] = useState<"conectando" | "activa" | "inactiva">("conectando");
   const [loadingPredict, setLoadingPredict] = useState(false);
 
   // Estado para la card del generador predictivo (IA/Estadística)
@@ -33,18 +35,18 @@ export default function Dashboard() {
   const [formRevancha, setFormRevancha] = useState<SorteoForm>({ n1: '15', n2: '04', n3: '10', n4: '02', n5: '40', sb: '10' });
   const [formJugadas, setFormJugadas] = useState<SorteoForm>({ n1: '15', n2: '04', n3: '10', n4: '02', n5: '40', sb: '10' });
 
-  // 1.Consultar la API cuando cambia la fecha en el calendario
+  // 1. Consultar la API cuando cambia la fecha en el calendario
   useEffect(() => {
     async function cargarDatosFecha() {
+      setEstadoDb("conectando"); // Cada vez que cambia la fecha, entra en estado de espera
       try {
-        // Apuntando a Render en lugar de Localhost
         const res = await fetch(`https://analitica-baloto.onrender.com/api/sorteos/${fechaSeleccionada}`);
         if (!res.ok) throw new Error("Error en servidor");
         
         const data = await res.json();
         
         if (data.baloto) {
-          setDbActiva(true);
+          setEstadoDb("activa");
           setSorteosJugados(data.sorteos_jugados);
           setNumerosActivos(data.numeros_activos.map((n: number) => String(n).padStart(2, '0')));
           
@@ -66,13 +68,12 @@ export default function Dashboard() {
             sb: String(data.revancha.sb).padStart(2, '0'),
           });
         } else {
-          // Si no hay datos registrados para ese día
-          setDbActiva(false);
+          setEstadoDb("inactiva");
           setSorteosJugados(0);
           setNumerosActivos(['00', '00', '00', '00', '00', '00']);
         }
       } catch (error) {
-        setDbActiva(false);
+        setEstadoDb("inactiva");
         console.error("Backend desconectado", error);
       }
     }
@@ -84,7 +85,6 @@ export default function Dashboard() {
   const handleGenerarPrediccion = async () => {
     setLoadingPredict(true);
     try {
-      //Apuntando a Render en lugar de Localhost
       const res = await fetch("https://analitica-baloto.onrender.com/api/predict");
       if (!res.ok) throw new Error("Error obteniendo predicción");
       const data = await res.json();
@@ -98,9 +98,8 @@ export default function Dashboard() {
 
   const toggleEdit = async (tarjeta: 'baloto' | 'revancha' | 'jugadas') => {
     if (editando[tarjeta]) {
-      // Si ya estaba editando, al hacer clic significa que va a "Guardar"
       const guardadoExitoso = await guardarSorteoEnBackend();
-      if (!guardadoExitoso) return; // Detiene el cierre si hubo un error en la API
+      if (!guardadoExitoso) return;
     }
     setEditando(prev => ({ ...prev, [tarjeta]: !prev[tarjeta] }));
   };
@@ -108,7 +107,6 @@ export default function Dashboard() {
   // 3. PETICIÓN: Enviar datos nuevos ingresados manualmente al backend
   const guardarSorteoEnBackend = async (): Promise<boolean> => {
     try {
-      //Apuntando a Render en lugar de Localhost
       const res = await fetch("https://analitica-baloto.onrender.com/api/sorteos/ingresar", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -127,7 +125,7 @@ export default function Dashboard() {
         })
       });
       if (res.ok) {
-        setDbActiva(true);
+        setEstadoDb("activa");
         return true;
       }
       return false;
@@ -144,22 +142,33 @@ export default function Dashboard() {
   };
 
   return (
-    <main className={`${darkerGrotesque.variable} ${firaCode.variable} min-h-screen bg-[#09090B] text-[#E4E4E7] p-8 font-sans antialiased`}>
+    <main className={`${darkerGrotesque.variable} ${firaCode.variable} min-h-screen bg-[#09090B] text-[#E4E4E7] p-4 sm:p-8 font-sans antialiased`}>
       <div className="max-w-7xl mx-auto space-y-6">
         
-        {/* Top Bar */}
-        <div className="flex justify-between items-center border-b border-[#202024] pb-6">
-          <h1 className="text-3xl font-black tracking-tight text-white">
+        {/* Top Bar - Totalmente optimizada para responsive */}
+        <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center border-b border-[#202024] pb-6 gap-4 text-center lg:text-left">
+          
+          {/* Título centrado en mobile, alineado a la izquierda en desktop */}
+          <h1 className="text-3xl font-black tracking-tight text-white mx-auto lg:mx-0">
             Baloto Analytics <span className="text-zinc-600 font-light text-2xl">v1.0</span>
           </h1>
           
-          <div className="flex items-center gap-4">
-            <span className="font-mono text-xs px-3 py-1.5 rounded-lg border border-[#202024] bg-[#141416] text-zinc-400">
-              <span className={`inline-block w-1.5 h-1.5 rounded-full mr-2 ${dbActiva ? 'bg-[#9EFF00]' : 'bg-red-500 animate-pulse'}`}></span>
-              {dbActiva ? "Base de datos Activa" : "Base de datos Inactiva"}
+          {/* Contenedor de Estado y Calendario: Apilados en mobile, en fila en desktop */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mx-auto lg:mx-0 w-full sm:w-auto">
+            
+            {/* Indicador de Base de Datos dinámico (Conectando / Activa / Inactiva) */}
+            <span className="font-mono text-xs px-3 py-1.5 rounded-lg border border-[#202024] bg-[#141416] text-zinc-400 w-full sm:w-auto inline-flex items-center justify-center">
+              <span className={`inline-block w-1.5 h-1.5 rounded-full mr-2 ${
+                estadoDb === "activa" ? "bg-[#9EFF00]" : 
+                estadoDb === "conectando" ? "bg-amber-500 animate-pulse" : "bg-red-500"
+              }`}></span>
+              {estadoDb === "activa" && "Base de datos Activa"}
+              {estadoDb === "conectando" && "Conectando con el servidor..."}
+              {estadoDb === "inactiva" && "Base de datos Inactiva"}
             </span>
 
-            <label className="flex items-center gap-2 font-mono text-sm px-3 py-1.5 rounded-lg border border-[#9EFF00] bg-black text-[#9EFF00] cursor-pointer transition-all hover:bg-[#141416] relative">
+            {/* Calendario posicionado abajo del estado en mobile */}
+            <label className="flex items-center justify-center gap-2 font-mono text-sm px-3 py-1.5 rounded-lg border border-[#9EFF00] bg-black text-[#9EFF00] cursor-pointer transition-all hover:bg-[#141416] relative w-full sm:w-auto">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 text-[#9EFF00]"><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" /></svg>
               <span>{fechaSeleccionada ? new Date(fechaSeleccionada).toLocaleDateString('es-CO', { timeZone: 'UTC' }) : "Seleccionar fecha"}</span>
               <input type="date" value={fechaSeleccionada} onChange={(e) => setFechaSeleccionada(e.target.value)} className="absolute inset-0 opacity-0 w-full h-full cursor-pointer" />
@@ -167,40 +176,40 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Grid metricas */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Grid metricas principales */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <div className="space-y-6">
-            <div className="bg-[#141416] p-6 rounded-xl border border-[#202024] h-[130px] flex flex-col justify-between">
+            <div className="bg-[#141416] p-6 rounded-xl border border-[#202024] h-[130px] flex flex-col justify-between text-center sm:text-left">
               <span className="text-xs text-zinc-400 font-medium uppercase tracking-wider">Sorteos jugados</span>
               <h2 className="text-4xl font-black text-[#9EFF00] font-mono">{sorteosJugados}</h2>
             </div>
-            <div className="bg-[#141416] p-6 rounded-xl border border-[#202024] h-[130px] flex flex-col justify-between">
+            <div className="bg-[#141416] p-6 rounded-xl border border-[#202024] h-[130px] flex flex-col justify-between text-center sm:text-left">
               <span className="text-xs text-zinc-400 font-medium uppercase tracking-wider">Último Resultado Baloto</span>
-              <div className="flex gap-3 text-2xl font-black text-[#9EFF00] font-mono tracking-tight">
+              <div className="flex gap-3 justify-center sm:justify-start text-2xl font-black text-[#9EFF00] font-mono tracking-tight">
                 <span>{formBaloto.n1}</span><span>{formBaloto.n2}</span><span>{formBaloto.n3}</span><span>{formBaloto.n4}</span><span>{formBaloto.n5}</span><span className="text-[#FF5500]">{formBaloto.sb}</span>
               </div>
             </div>
           </div>
 
           <div className="space-y-6">
-            <div className="bg-[#141416] p-6 rounded-xl border border-[#202024] h-[130px] flex flex-col justify-between">
+            <div className="bg-[#141416] p-6 rounded-xl border border-[#202024] h-[130px] flex flex-col justify-between text-center sm:text-left">
               <span className="text-xs text-zinc-400 font-medium uppercase tracking-wider">Números más activos</span>
-              <div className="flex gap-3 text-2xl font-black text-[#FF5500] font-mono tracking-tight">
+              <div className="flex gap-3 justify-center sm:justify-start text-2xl font-black text-[#FF5500] font-mono tracking-tight">
                 {numerosActivos.map((num, i) => (
                   <span key={i}>{num}</span>
                 ))}
               </div>
             </div>
-            <div className="bg-[#141416] p-6 rounded-xl border border-[#202024] h-[130px] flex flex-col justify-between">
+            <div className="bg-[#141416] p-6 rounded-xl border border-[#202024] h-[130px] flex flex-col justify-between text-center sm:text-left">
               <span className="text-xs text-zinc-400 font-medium uppercase tracking-wider">Último Resultado Revancha</span>
-              <div className="flex gap-3 text-2xl font-black text-[#9EFF00] font-mono tracking-tight">
+              <div className="flex gap-3 justify-center sm:justify-start text-2xl font-black text-[#9EFF00] font-mono tracking-tight">
                 <span>{formRevancha.n1}</span><span>{formRevancha.n2}</span><span>{formRevancha.n3}</span><span>{formRevancha.n4}</span><span>{formRevancha.n5}</span><span className="text-[#FF5500]">{formRevancha.sb}</span>
               </div>
             </div>
           </div>
 
           {/* Generador interactivo */}
-          <div className="bg-[#141416] p-6 rounded-xl border border-[#202024] flex flex-col justify-between h-[284px]">
+          <div className="bg-[#141416] p-6 rounded-xl border border-[#202024] flex flex-col justify-between h-[284px] md:col-span-2 lg:col-span-1">
             <div className="text-center">
               <span className="text-sm font-bold text-white tracking-wide block mb-4">Generar nuevo sorteo</span>
               <div className={`flex gap-3 justify-center text-2xl font-black text-[#9EFF00] font-mono tracking-tight my-4 transition-opacity ${loadingPredict ? 'opacity-40 animate-pulse' : ''}`}>
@@ -217,8 +226,8 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Bottom Cards */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pt-4">
+        {/* BOTTOM CARDS - SorteoInputCard responsivas */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-4">
           <SorteoInputCard 
             title="Resultado Baloto" tarjetaKey="baloto" form={formBaloto} isEditing={editando.baloto}
             onEditToggle={() => toggleEdit('baloto')} onInputChange={(campo, valor) => handleInputChange('baloto', campo, valor)}
@@ -235,7 +244,8 @@ export default function Dashboard() {
           />
         </div>
 
-        <div className="text-right pt-6 text-xs font-mono text-[#9EFF00]/70">
+        {/* Footer centrado en mobile (`text-center sm:text-right`) */}
+        <div className="text-center sm:text-right pt-6 text-xs font-mono text-[#9EFF00]/70">
           Creado por:{" "}
           <a href="https://brayanalbadam.com" target="_blank" rel="noopener noreferrer" className="hover:underline text-[#9EFF00] font-bold transition-all">
             Brayanalbadam.com
