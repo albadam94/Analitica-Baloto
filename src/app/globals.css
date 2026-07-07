@@ -1,0 +1,21 @@
+@import "tailwindcss";
+
+
+@theme {
+  --font-sans: var(--font-darker), sans-serif;
+  --font-mono: var(--font-fira), monospace;
+}
+@layer base {
+  :root {
+    /* Mapea las variables de Next.js a las fuentes del navegador */
+    font-family: var(--font-darker), sans-serif;
+  }
+
+  .font-sans {
+    font-family: var(--font-darker), sans-serif;
+  }
+
+  .font-mono {
+    font-family: var(--font-fira), monospace;
+  }
+}
