@@ -48,17 +48,12 @@ export default function RootLayout({
     <html
       lang="es"
       className={`${darkerGrotesque.variable} ${firaCode.variable} h-full antialiased text-[#E4E4E7] bg-[#09090B]`}
-<<<<<<< HEAD
       suppressHydrationWarning 
     >
       <body 
         className="min-h-full flex flex-col font-sans selection:bg-[#9EFF00] selection:text-black"
         suppressHydrationWarning 
       >
-=======
-    >
-      <body className="min-h-full flex flex-col font-sans selection:bg-[#9EFF00] selection:text-black">
->>>>>>> fcf0eafa975e04392e02cb62b76687b9679691cd
         {children}
       </body>
     </html>
